@@ -21,6 +21,9 @@ const DOMElements = {
     loginView: document.getElementById('login-view'),
     gameView: document.getElementById('game-view'),
     loginError: document.getElementById('login-error'),
+    loginForm: document.getElementById('login-form'),
+    passwordInput: document.getElementById('password-input'),
+    loginButton: document.getElementById('login-button'),
     logoutButton: document.getElementById('logout-button'),
     fullscreenButton: document.getElementById('fullscreen-button'),
     narrativeWindow: document.getElementById('narrative-window'),
@@ -41,6 +44,18 @@ const DOMElements = {
 
 // --- API Client ---
 const api = {
+    async login(password) {
+        const response = await fetch(`${API_BASE_URL}/login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password })
+        });
+        if (response.status === 401) {
+            throw new Error('Unauthorized');
+        }
+        if (!response.ok) throw new Error('Login failed');
+        return response.json();
+    },
     async initGame() {
         const response = await fetch(`${API_BASE_URL}/game/init`, {
             method: 'POST',
@@ -395,6 +410,32 @@ function handleLogout() {
     api.logout();
 }
 
+async function handleLoginSubmit(e) {
+    e.preventDefault();
+    DOMElements.loginError.textContent = '';
+    const password = (DOMElements.passwordInput?.value || '').trim();
+    if (!password) {
+        DOMElements.loginError.textContent = '请输入口令。';
+        return;
+    }
+
+    try {
+        showLoading(true);
+        await api.login(password);
+        DOMElements.passwordInput.value = '';
+        await initializeGame();
+    } catch (error) {
+        if (error.message === 'Unauthorized') {
+            DOMElements.loginError.textContent = '口令错误。';
+        } else {
+            DOMElements.loginError.textContent = '登录失败。';
+            console.error(error);
+        }
+    } finally {
+        showLoading(false);
+    }
+}
+
 function handleAction(actionOverride = null) {
     const action = actionOverride || DOMElements.actionInput.value.trim();
     if (!action) return;
@@ -444,6 +485,9 @@ function init() {
     setupScrollInterruptListener(DOMElements.narrativeWindow);
 
     // Setup event listeners regardless of initial view
+    if (DOMElements.loginForm) {
+        DOMElements.loginForm.addEventListener('submit', handleLoginSubmit);
+    }
     DOMElements.logoutButton.addEventListener('click', handleLogout);
     DOMElements.fullscreenButton.addEventListener('click', toggleFullscreen);
     DOMElements.actionButton.addEventListener('click', () => handleAction());

@@ -10,8 +10,7 @@ from datetime import date
 from pathlib import Path
 from fastapi import HTTPException, status
 
-from . import state_manager, openai_client, cheat_check, redemption
-from .websocket_manager import manager as websocket_manager
+from . import state_manager, openai_client
 from .config import settings
 
 # --- Logging ---
@@ -182,11 +181,6 @@ async def get_or_create_daily_session(current_user: dict) -> dict:
         if session.get("is_processing"):
             session["is_processing"] = False
         await state_manager.save_session(player_id, session)
-
-        if session.get("daily_success_achieved") and not session.get("redemption_code"):
-            session["daily_success_achieved"] = False
-            await state_manager.save_session(player_id, session)
-
         return session
 
     logger.info(f"Starting new daily session for {player_id}.")
@@ -197,8 +191,6 @@ async def get_or_create_daily_session(current_user: dict) -> dict:
         "daily_success_achieved": False,
         "is_in_trial": False,
         "is_processing": False,
-        "pending_punishment": None,
-        "unchecked_rounds_count": 0,
         "current_life": None,
         "internal_history": [{"role": "system", "content": GAME_MASTER_SYSTEM_PROMPT}],
         "display_history": [
@@ -238,11 +230,10 @@ async def get_or_create_daily_session(current_user: dict) -> dict:
 
 ---
 
-汝可准备好了？司命星君已恭候多时，静待汝开启第一场浮生之梦。
+汝可准备好了？司命星君已恭候多时，静待汝开启第一场浮生之梦.
 """
         ],
         "roll_event": None,
-        "redemption_code": None,
     }
     await state_manager.save_session(player_id, new_session)
     return new_session
@@ -298,33 +289,37 @@ def end_game_and_get_code(
     user_id: int, player_id: str, spirit_stones: int
 ) -> tuple[dict, dict]:
     if spirit_stones <= 0:
-        return {"error": "未获得灵石，无法生成兑换码。"}, {}
+        final_message = (
+            "\n\n【天道回响 · 归于平淡】\n\n"
+            "汝虽尝试破碎虚空，然此生所得寥寥，未曾凝结出可带离此界之造化。\n\n"
+            "轮回之门缓缓闭合，今日试炼至此为止。"
+        )
+        return {"final_message": final_message}, {
+            "daily_success_achieved": True,
+            "is_in_trial": False,
+            "current_life": None,
+        }
 
     converted_value = REWARD_SCALING_FACTOR * min(
         30, max(1, 3 * (spirit_stones ** (1 / 6)))
     )
     converted_value = int(converted_value)
 
-    # Use the new database-integrated redemption code generation
-    code_name = f"天道十试-{date.today().isoformat()}-{player_id}"
-    redemption_code = redemption.generate_and_insert_redemption_code(
-        user_id=user_id, quota=converted_value, name=code_name
-    )
-
-    if not redemption_code:
-        final_message = "\n\n【天机有变】\n\n就在功德即将圆满之际，天道因果之线竟生出一丝紊乱。\n\n冥冥中似有外力干预，令这枚本应降世的天道馈赠化为虚无。此非汝之过，乃天机运转偶有差池。\n\n请持此凭证，寻访天道之外的司掌者，必能为汝寻回应得之物。"
-        return {
-            "error": "数据库错误，无法生成兑换码。",
-            "final_message": final_message,
-        }, {}
-
     logger.info(
-        f"Generated and stored DB code {redemption_code} for {player_id} with value {converted_value:.2f}."
+        f"Player {player_id} ended the day with spirit_stones={spirit_stones}, value={converted_value}."
     )
-    final_message = f"\n\n【天道回响 · 功德圆满】\n\n九天霞光倾洒，万籁俱寂。\n\n汝于浮生十梦中历经沉浮，终悟知足之道，功德圆满。天道特赐馈赠一枚，以彰汝之慧根：\n\n> {redemption_code}\n\n此乃汝应得之物，请妥善珍藏。\n\n明日此时，轮回之门将再度开启，届时可再入梦问道。今日且去，好生休憩。"
-    return {"final_message": final_message, "redemption_code": redemption_code}, {
+
+    final_message = (
+        "\n\n【天道回响 · 功德圆满】\n\n"
+        "九天霞光倾洒，万籁俱寂。\n\n"
+        f"此生所获灵石：{spirit_stones}\n"
+        f"天道折算价值：{converted_value}\n\n"
+        "轮回之门缓缓闭合，今日试炼至此为止。"
+    )
+    return {"final_message": final_message}, {
         "daily_success_achieved": True,
-        "redemption_code": redemption_code,
+        "is_in_trial": False,
+        "current_life": None,
     }
 
 
@@ -470,7 +465,7 @@ async def _process_player_action_async(user_info: dict, action: str):
                 session["internal_history"].append(
                     {
                         "role": "system",
-                        "content": '请给出正确格式的JSON响应。必须是正确格式的json，包括narrative和state_update或roll_request，刚才的格式错误，系统无法加载！正确输出{"key":value}',
+                        "content": '请给出正确格式的JSON响应。必须是正确格式的json，包括narrative和(state_update或roll_request)，刚才的格式错误，系统无法加载！正确输出{"key":value}',
                     },
                 )
         else:
@@ -494,47 +489,12 @@ async def _process_player_action_async(user_info: dict, action: str):
         # --- Common final logic for both paths ---
         trigger = state_update.get("trigger_program")
         if trigger and trigger.get("name") == "spiritStoneConverter":
-            inputs_to_check = await state_manager.get_last_n_inputs(
-                player_id, 8 + session["unchecked_rounds_count"]
+            spirit_stones = trigger.get("spirit_stones", 0)
+            end_game_data, end_day_update = end_game_and_get_code(
+                user_id, player_id, spirit_stones
             )
-
-            await state_manager.save_session(
-                player_id, session
-            )  # Save before cheat check
-            if "正常" == await cheat_check.run_cheat_check(player_id, inputs_to_check):
-                # 重新获取 session，确保不为 None
-                updated_session = await state_manager.get_session(player_id)
-                if updated_session:
-                    session = updated_session
-                spirit_stones = trigger.get("spirit_stones", 0)
-                end_game_data, end_day_update = end_game_and_get_code(
-                    user_id, player_id, spirit_stones
-                )
-                session = _apply_state_update(session, end_day_update)
-                session["display_history"].append(
-                    end_game_data.get("final_message", "")
-                )
-
-            else:
-                # 重新获取 session，确保不为 None
-                updated_session = await state_manager.get_session(player_id)
-                if updated_session:
-                    session = updated_session
-                else:
-                    logger.error(f"Post-cheat-check: Could not find session for {player_id}.")
-                    # 继续使用原有 session
-                session["display_history"].append(
-                    "【最终清算 · 天道审视】\n\n"
-                    "就在汝即将破碎虚空之际——\n\n"
-                    "整个世界骤然凝滞。时间静止，万物褪尽色彩，唯余黑白二色。\n\n"
-                    "一道无悲无喜的目光自九天垂落，穿透时空，落于汝之神魂，开始审视此生一切轨迹。\n\n"
-                    "> *「功过是非，皆有定数。然，汝之命途，存有异数。」*\n\n"
-                    "天道之音在灵台中响起，不带丝毫情感，却蕴含不容置疑的威严。\n\n"
-                    "> *「天机已被扰动，因果之线呈现不应有之扭曲。此番功果，暂且搁置。」*\n\n"
-                    "> *「下一瞬间，将是对汝此生所有言行的最终裁决。清浊自分，功过相抵。届时，一切虚妄都将无所遁形。」*\n\n"
-                    "汝感到一股无法抗拒的力量正在回溯此生的每一个瞬间。任何投机取巧的痕迹，都在这终极审视下被一一标记。\n\n"
-                    "结局已定，无可更改。"
-                )
+            session = _apply_state_update(session, end_day_update)
+            session["display_history"].append(end_game_data.get("final_message", ""))
 
     except Exception as e:
         logger.error(f"Error processing action for {player_id}: {e}", exc_info=True)
@@ -558,47 +518,6 @@ async def _process_player_action_async(user_info: dict, action: str):
     finally:
         try:
             if "session" in locals() and session:
-                # Periodic cheat check in `finally` to guarantee execution
-                session["unchecked_rounds_count"] = (
-                    session.get("unchecked_rounds_count", 0) + 1
-                )
-                await state_manager.save_session(player_id, session)
-
-                if session.get("unchecked_rounds_count", 0) > 5:
-                    logger.info(f"Running periodic cheat check for {player_id}...")
-
-                    # Re-fetch the session to get the most up-to-date count
-                    s = await state_manager.get_session(player_id)
-                    if s:
-                        unchecked_count = s.get("unchecked_rounds_count", 0)
-                        logger.debug(
-                            f"Running cheat check for {player_id} with {unchecked_count} rounds."
-                        )
-
-                        inputs_to_check = await state_manager.get_last_n_inputs(
-                            player_id, 8 + unchecked_count
-                        )
-                        # Only run if there are inputs, to save API calls
-                        if inputs_to_check:
-                            await cheat_check.run_cheat_check(
-                                player_id, inputs_to_check
-                            )
-
-                        logger.debug(f"Cheat check for {player_id} finished.")
-                    else:
-                        logger.warning(
-                            f"Session for {player_id} disappeared during cheat check."
-                        )
-        except Exception as e:
-            logger.error(
-                f"Error scheduling background cheat check for {player_id}: {e}",
-                exc_info=True,
-            )
-
-        # 重新获取最新的 session 来重置状态
-        try:
-            session = await state_manager.get_session(player_id)
-            if session:
                 session["roll_event"] = None
                 session["is_processing"] = False
                 await state_manager.save_session(player_id, session)
@@ -629,90 +548,6 @@ async def process_player_action(current_user: dict, action: str):
         logger.warning(
             f"Action '{action}' blocked for {player_id}, no opportunities left."
         )
-        return
-
-    if session.get("pending_punishment"):
-        punishment = session["pending_punishment"]
-        level = punishment.get("level")
-        reason = punishment.get("reason", "天机不可泄露")
-        new_state = session.copy()
-        
-        if level == "轻度亵渎":
-            punishment_narrative = f"""【天机示警 · 命途勘误】
-
-虚空之中，传来一声若有若无的叹息。
-
-汝方才之言，如投石入镜湖——虽微澜泛起，却已扰动既定的天机轨迹。
-
-一道无形的目光自九天垂落，淡漠地注视着汝。神魂一凛，仿佛被看穿了所有心思。
-
-> *「蝼蚁窥天，其心可悯，其行当止。」*
-
-天道之音并非雷霆震怒，而是如万古不化的玄冰，不带丝毫情感。
-
----
-
-**【天道之眼 · 审判记录】**
-
-> {reason}
-
----
-
-话音落下，眼前的世界开始如水墨画般褪色、模糊，最终化为一片虚无。此生的所有经历、记忆，乃至刚刚生出的一丝妄念，都随之烟消云散。
-
-此非惩戒，乃是勘误。
-
-为免因果错乱，此段命途，就此抹去。
-
----
-
-> 天道已修正异常，当前试炼结束。善用下一次机缘，恪守本心，方能行稳致远。
-"""
-            new_state["is_in_trial"], new_state["current_life"] = False, None
-            new_state["internal_history"] = [
-                {"role": "system", "content": GAME_MASTER_SYSTEM_PROMPT}
-            ]
-        elif level == "重度渎道":
-            punishment_narrative = f"""【天道斥逐 · 放逐乱流】
-
-轰隆——！
-
-这一次，并非雷鸣，而是整个天地法则都在为汝公然的挑衅而震颤。
-
-脚下大地化为虚无，周遭星辰黯淡无光。时空在汝面前呈现出最原始、最混乱的姿态。
-
-一道蕴含无上威严的金色法旨在虚空中展开，上面用大道符文烙印着两个字：
-
-# 【渎 道】
-
-> *「汝已非求道，而是乱道。」*
-
-天道威严的声音响彻神魂，每一个字都化作法则之链，将汝牢牢锁住。
-
----
-
-**【天道之眼 · 审判记录】**
-
-> {reason}
-
----
-
-> *「汝之行径，已触及此界根本。为护天地秩序，今将汝放逐于时空乱流之中，以儆效尤。」*
-
-> *「一日之内，此界之门将对汝关闭。静思己过，或有再入轮回之机。若执迷不悟，再犯天条，必将汝之真灵从光阴长河中彻底抹去——神魂俱灭，永不超生。」*
-
-金光散去，汝已被抛入无尽的混沌……
-
----
-
-> 因严重违规触发【天道斥逐】，试炼资格暂时剥夺。一日之后，方可再次踏入轮回之门。
-"""
-            new_state["daily_success_achieved"] = True
-            new_state["is_in_trial"], new_state["current_life"] = False, None
-            new_state["opportunities_remaining"] = -10
-        new_state["pending_punishment"] = None
-        new_state["display_history"].append(punishment_narrative)
-        await state_manager.save_session(player_id, new_state)
         return
 
     is_starting_trial = action in [

@@ -11,8 +11,6 @@ import aiofiles
 import aiofiles.os
 
 from .websocket_manager import manager as websocket_manager
-from .live_system import live_manager
-from . import security
 
 # --- Logging ---
 logger = logging.getLogger(__name__)
@@ -545,13 +543,9 @@ async def save_session(player_id: str, session_data: dict):
     await _save_meta(player_id, data_to_save)
     
     # 推送更新（使用原始 session_data，包含历史记录）
-    tasks = [
-        websocket_manager.send_json_to_player(
-            player_id, {"type": "full_state", "data": session_data}
-        ),
-        live_manager.broadcast_state_update(player_id, session_data)
-    ]
-    await asyncio.gather(*tasks)
+    await websocket_manager.send_json_to_player(
+        player_id, {"type": "full_state", "data": session_data}
+    )
 
 
 async def get_last_n_inputs(player_id: str, n: int) -> list[str]:
@@ -578,14 +572,13 @@ def get_most_recent_sessions(limit: int = 10) -> list[dict]:
     
     results = []
     for player_id, last_modified in sorted_sessions:
-        encrypted_id = security.encrypt_player_id(player_id)
         display_name = (
             f"{player_id[0]}...{player_id[-1]}"
             if len(player_id) > 2
             else player_id
         )
         results.append({
-            "player_id": encrypted_id,
+            "player_id": player_id,
             "display_name": display_name,
             "last_modified": last_modified
         })

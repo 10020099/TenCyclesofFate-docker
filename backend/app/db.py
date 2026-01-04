@@ -1,6 +1,5 @@
 import sqlite3
 import logging
-import mysql.connector
 from urllib.parse import urlparse
 from .config import settings
 
@@ -20,6 +19,11 @@ def get_db_connection():
             logger.info(f"Successfully connected to SQLite database at: {db_path}")
             return conn
         elif parsed_url.scheme == "mysql":
+            try:
+                import mysql.connector
+            except ImportError:
+                logger.error("mysql-connector-python is not installed")
+                return None
             conn = mysql.connector.connect(
                 host=parsed_url.hostname,
                 port=parsed_url.port,
@@ -29,10 +33,14 @@ def get_db_connection():
             )
             logger.info(f"Successfully connected to MySQL database at: {parsed_url.hostname}")
             return conn
+
         else:
             logger.error(f"Unsupported database scheme: {parsed_url.scheme}")
             return None
             
-    except (sqlite3.Error, mysql.connector.Error) as e:
+    except sqlite3.Error as e:
+        logger.error(f"Database connection failed to '{settings.DATABASE_URL}': {e}", exc_info=True)
+        return None
+    except Exception as e:
         logger.error(f"Database connection failed to '{settings.DATABASE_URL}': {e}", exc_info=True)
         return None
