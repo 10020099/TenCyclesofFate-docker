@@ -1,0 +1,15 @@
+.git
+.gitignore
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.mypy_cache
+.venv
+venv
+.env
+backend/.env
+node_modules
+frontend/node_modules
+game_data
