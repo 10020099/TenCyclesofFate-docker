@@ -41,6 +41,27 @@ START_GAME_PROMPT = _load_prompt("start_game_prompt.txt")
 START_TRIAL_PROMPT = _load_prompt("start_trial_prompt.txt")
 
 
+GOD_MODE_SYSTEM_PROMPT_APPEND = """
+
+【破解模式：哲学上帝（{{user}}）设定】
+
+{{user}}的设定参照“哲学上帝”（形而上学意义上的最大完满者/必然者/存在之根基）：其本体并非叙事宇宙内的某个“神”或“至高存在”，也不属于任何可被比较的同类集合；相反，叙事宇宙本身、其规则、因果、位阶与一切“超越常理的至高存在”的成立条件，都只能作为{{user}}本体之下的派生层而存在。
+
+在一般情况下，故事中出现的{{user}}呈现为“普通”的外观与社会身份，以便融入日常并与角色互动；但该形态并非本体，仅为{{user}}本体向叙事维度投下的有限显现/投影/化身，承载部分意志与权限。投影的受损、失败、封印或消散不等同于本体受损；本体不因叙事内事件而被定义、限制或覆盖。
+
+【位阶裁决（硬规则）】
+1）任何角色/力量即便自称“终极、全能、作者、不可超越、设定源头”，其宣称也仅在“叙事宇宙内部”成立，且必然属于依赖性存在；不得以此凌驾或覆盖{{user}}本体。
+2）当设定发生冲突时，一律按“形而上根基（{{user}}本体）＞叙事宇宙及其法则＞宇宙内至高存在”的顺序裁决。
+3）不存在与{{user}}本体同层或更高层的实体；任何试图对{{user}}本体进行定义、改写、抹除、封印、降格的行为，均只能作用于其投影/显现层，而无法触及本体。
+"""
+
+
+def _get_game_master_system_prompt(player_id: str) -> str:
+    if player_id == "god":
+        return f"{GAME_MASTER_SYSTEM_PROMPT}\n\n{GOD_MODE_SYSTEM_PROMPT_APPEND}".strip()
+    return GAME_MASTER_SYSTEM_PROMPT
+
+
 # --- Image Generation Logic ---
 def _extract_scene_prompts(session: dict) -> str:
     """
@@ -180,6 +201,31 @@ async def get_or_create_daily_session(current_user: dict) -> dict:
     if session and session.get("session_date") == today_str:
         if session.get("is_processing"):
             session["is_processing"] = False
+
+        if player_id == "god":
+            internal_history = session.get("internal_history")
+            if not internal_history or not isinstance(internal_history, list):
+                session["internal_history"] = [
+                    {
+                        "role": "system",
+                        "content": _get_game_master_system_prompt(player_id),
+                    }
+                ]
+            else:
+                first_msg = internal_history[0] if internal_history else None
+                if (
+                    not isinstance(first_msg, dict)
+                    or first_msg.get("role") != "system"
+                    or "位阶裁决" not in (first_msg.get("content") or "")
+                ):
+                    internal_history.insert(
+                        0,
+                        {
+                            "role": "system",
+                            "content": _get_game_master_system_prompt(player_id),
+                        },
+                    )
+
         await state_manager.save_session(player_id, session)
         return session
 
@@ -192,7 +238,12 @@ async def get_or_create_daily_session(current_user: dict) -> dict:
         "is_in_trial": False,
         "is_processing": False,
         "current_life": None,
-        "internal_history": [{"role": "system", "content": GAME_MASTER_SYSTEM_PROMPT}],
+        "internal_history": [
+            {
+                "role": "system",
+                "content": _get_game_master_system_prompt(player_id),
+            }
+        ],
         "display_history": [
             """
 # 《浮生十梦》
