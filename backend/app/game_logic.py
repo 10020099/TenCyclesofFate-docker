@@ -62,6 +62,186 @@ def _get_game_master_system_prompt(player_id: str) -> str:
     return GAME_MASTER_SYSTEM_PROMPT
 
 
+# --- God Mode: Direct State Modification ---
+def _parse_god_command(action: str) -> tuple[str, str, any] | None:
+    """
+    解析 god 模式的特殊指令。
+    支持格式:
+      /set key value          - 设置值（支持点号路径如 current_life.灵石）
+      /set key +100           - 数值增加
+      /set key -50            - 数值减少
+      /get key                - 查看当前值
+      /reset                  - 重置当日会话
+    
+    返回: (command, key, value) 或 None（非指令）
+    """
+    action = action.strip()
+    if not action.startswith("/"):
+        return None
+    
+    parts = action.split(maxsplit=2)
+    cmd = parts[0].lower()
+    
+    if cmd == "/set" and len(parts) >= 3:
+        key = parts[1]
+        value_str = parts[2]
+        
+        # 尝试解析值
+        # 处理增减操作
+        if value_str.startswith("+") or value_str.startswith("-"):
+            try:
+                return ("delta", key, int(value_str))
+            except ValueError:
+                try:
+                    return ("delta", key, float(value_str))
+                except ValueError:
+                    pass
+        
+        # 尝试解析为 JSON（支持数组、对象等）
+        try:
+            value = json.loads(value_str)
+            return ("set", key, value)
+        except json.JSONDecodeError:
+            pass
+        
+        # 尝试解析为数字
+        try:
+            value = int(value_str)
+            return ("set", key, value)
+        except ValueError:
+            try:
+                value = float(value_str)
+                return ("set", key, value)
+            except ValueError:
+                pass
+        
+        # 布尔值
+        if value_str.lower() == "true":
+            return ("set", key, True)
+        if value_str.lower() == "false":
+            return ("set", key, False)
+        if value_str.lower() == "null" or value_str.lower() == "none":
+            return ("set", key, None)
+        
+        # 作为字符串
+        return ("set", key, value_str)
+    
+    elif cmd == "/get" and len(parts) >= 2:
+        return ("get", parts[1], None)
+    
+    elif cmd == "/reset":
+        return ("reset", None, None)
+    
+    elif cmd == "/help":
+        return ("help", None, None)
+    
+    return None
+
+
+def _get_nested_value(obj: dict, key_path: str) -> any:
+    """获取嵌套字典中的值，支持点号路径"""
+    keys = key_path.split(".")
+    current = obj
+    for k in keys:
+        if isinstance(current, dict) and k in current:
+            current = current[k]
+        else:
+            return None
+    return current
+
+
+def _set_nested_value(obj: dict, key_path: str, value: any) -> bool:
+    """设置嵌套字典中的值，支持点号路径"""
+    keys = key_path.split(".")
+    current = obj
+    for k in keys[:-1]:
+        if k not in current or current[k] is None:
+            current[k] = {}
+        current = current[k]
+        if not isinstance(current, dict):
+            return False
+    current[keys[-1]] = value
+    return True
+
+
+async def _handle_god_command(player_id: str, session: dict, action: str) -> dict | None:
+    """
+    处理 god 模式的特殊指令。
+    返回: 包含结果消息的 dict，或 None（非指令，继续正常流程）
+    """
+    parsed = _parse_god_command(action)
+    if not parsed:
+        return None
+    
+    cmd, key, value = parsed
+    
+    if cmd == "help":
+        help_text = """【天道秘令 · 使用指南】
+
+可用指令：
+• `/set <路径> <值>` - 直接修改状态
+  例: `/set current_life.灵石 99999`
+  例: `/set current_life.属性.根骨 100`
+  例: `/set opportunities_remaining 99`
+
+• `/set <路径> +/-数值` - 增减数值
+  例: `/set current_life.生命值 +50`
+  例: `/set current_life.灵石 -100`
+
+• `/get <路径>` - 查看当前值
+  例: `/get current_life`
+  例: `/get current_life.属性`
+
+• `/reset` - 重置当日会话（清空所有进度）
+
+• `/help` - 显示此帮助
+
+常用路径：
+• `current_life.灵石` - 灵石数量
+• `current_life.生命值` - 当前生命
+• `current_life.属性.根骨/悟性/气运` - 属性值
+• `opportunities_remaining` - 剩余机缘
+• `is_in_trial` - 是否在试炼中
+• `daily_success_achieved` - 是否已完成当日"""
+        return {"message": help_text, "success": True}
+    
+    if cmd == "get":
+        value = _get_nested_value(session, key)
+        if value is None:
+            return {"message": f"【天道回响】路径 `{key}` 不存在或为空", "success": False}
+        value_str = json.dumps(value, ensure_ascii=False, indent=2)
+        return {"message": f"【天道回响】`{key}` 的当前值：\n```json\n{value_str}\n```", "success": True}
+    
+    if cmd == "set":
+        if _set_nested_value(session, key, value):
+            await state_manager.save_session(player_id, session)
+            value_display = json.dumps(value, ensure_ascii=False) if not isinstance(value, str) else value
+            return {"message": f"【天道法旨】已将 `{key}` 设为 `{value_display}`", "success": True}
+        else:
+            return {"message": f"【天道回响】无法设置路径 `{key}`，中间路径不是对象", "success": False}
+    
+    if cmd == "delta":
+        current = _get_nested_value(session, key)
+        if current is None:
+            return {"message": f"【天道回响】路径 `{key}` 不存在", "success": False}
+        if not isinstance(current, (int, float)):
+            return {"message": f"【天道回响】`{key}` 的值不是数字，无法增减", "success": False}
+        new_value = current + value
+        if _set_nested_value(session, key, new_value):
+            await state_manager.save_session(player_id, session)
+            delta_str = f"+{value}" if value > 0 else str(value)
+            return {"message": f"【天道法旨】`{key}`: {current} → {new_value} ({delta_str})", "success": True}
+        else:
+            return {"message": f"【天道回响】无法修改路径 `{key}`", "success": False}
+    
+    if cmd == "reset":
+        # 删除当前会话，下次 init 会重新创建
+        await state_manager.clear_session(player_id)
+        return {"message": "【天道法旨】汝之命数已被重置，轮回重启。刷新页面以开始新的一天。", "success": True, "reset": True}
+    
+    return None
+
+
 # --- Image Generation Logic ---
 def _extract_scene_prompts(session: dict) -> str:
     """
@@ -304,15 +484,22 @@ async def _handle_roll_request(
         roll_request.get("target", 50),
         roll_request.get("sides", 100),
     )
-    roll_result = random.randint(1, sides)
-    if roll_result <= (sides * 0.05):
+    
+    # God mode: 判定必定大成功
+    if player_id == "god":
+        roll_result = 1  # 最小值，必定大成功
         outcome = "大成功"
-    elif roll_result <= target:
-        outcome = "成功"
-    elif roll_result >= (sides * 0.96):
-        outcome = "大失败"
+        logger.info(f"God mode: 玩家 {player_id} 的判定强制为大成功")
     else:
-        outcome = "失败"
+        roll_result = random.randint(1, sides)
+        if roll_result <= (sides * 0.05):
+            outcome = "大成功"
+        elif roll_result <= target:
+            outcome = "成功"
+        elif roll_result >= (sides * 0.96):
+            outcome = "大失败"
+        else:
+            outcome = "失败"
     result_text = f"【系统提示：针对 '{roll_type}' 的D{sides}判定已执行。目标值: {target}，投掷结果: {roll_result}，最终结果: {outcome}】"
     roll_event = {
         "id": f"{player_id}_{int(time.time() * 1000)}",  # 唯一标识
@@ -587,6 +774,21 @@ async def process_player_action(current_user: dict, action: str):
     if not session:
         logger.error(f"Action for non-existent session: {player_id}")
         return
+    
+    # God mode: 处理特殊指令
+    if player_id == "god":
+        god_result = await _handle_god_command(player_id, session, action)
+        if god_result:
+            # 记录指令到历史
+            session["display_history"].append(f"> {action}")
+            session["display_history"].append(god_result["message"])
+            
+            if not god_result.get("reset"):
+                await state_manager.save_session(player_id, session)
+            
+            logger.info(f"God command executed: {action}")
+            return
+    
     if session.get("is_processing"):
         logger.warning(f"Action '{action}' blocked for {player_id}, processing.")
         return
