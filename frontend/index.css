@@ -1,23 +1,64 @@
 /* --- 
-Theme: 江南园林 (Jiangnan Garden)
+Theme: Persona 5 Style (P5 风格)
+
+性能优化说明 (Performance Optimization Notes):
+- 所有动画关键帧仅使用 transform 和 opacity 属性以启用 GPU 加速
+- 避免在动画中使用布局触发属性 (width, height, top, left, margin, padding)
+- box-shadow 动画仅用于低频触发的交互效果（如 focus）
+- 频繁动画元素使用 will-change 提示浏览器优化
 --- */
 
-/* --- General Setup & Font --- */
-:root {
-    --bg-color: #3d2c1d; /* Dark Wood */
-    --panel-bg: rgba(245, 247, 246, 0.9); /* White Jade with transparency */
-    --text-color: #3a2e28;
-    --title-color: #2c1e18;
-    --border-color: #8a704c; /* Bronze/Wood Accent */
-    --primary-color: #6a8b6a; /* Muted Jade Green */
-    --accent-color: #a8453c; /* Seal Red */
-    --shadow-color: rgba(0, 0, 0, 0.3);
-    --light-shadow: rgba(58, 46, 40, 0.2);
-    --font-serif: 'Ma Shan Zheng', 'KaiTi', 'STKaiti', '楷体', serif;
-    --font-sans: 'ZCOOL KuaiLe', 'Noto Sans SC', sans-serif;
-}
+/* --- Google Fonts 导入 --- */
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+SC:wght@400;700&display=swap');
 
-@import url('https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+KuaiLe&display=swap');
+/* --- P5 核心配色变量系统 --- */
+:root {
+    /* P5 核心配色 */
+    --p5-black: #0a0a0a;
+    --p5-dark: #1a1a1a;
+    --p5-darker: #121212;
+    --p5-red: #ff0000;
+    --p5-red-dark: #cc0000;
+    --p5-red-light: #ff3333;
+    --p5-white: #ffffff;
+    --p5-gray: #888888;
+    --p5-gray-light: #aaaaaa;
+    --p5-gray-dark: #444444;
+    
+    /* 功能色 */
+    --p5-success: #00ff00;
+    --p5-warning: #ffff00;
+    --p5-error: #ff0000;
+    
+    /* P5 斜切角度变量 */
+    --p5-skew: -3deg;
+    --p5-skew-strong: -5deg;
+    --p5-skew-subtle: -2deg;
+    
+    /* P5 动画时长变量 */
+    --p5-transition-fast: 150ms;
+    --p5-transition-normal: 300ms;
+    --p5-transition-slow: 500ms;
+    
+    /* 兼容旧变量名（渐进式迁移） */
+    --bg-color: var(--p5-black);
+    --panel-bg: var(--p5-dark);
+    --text-color: var(--p5-white);
+    --title-color: var(--p5-white);
+    --border-color: var(--p5-red);
+    --primary-color: var(--p5-red);
+    --accent-color: var(--p5-red);
+    --shadow-color: rgba(255, 0, 0, 0.3);
+    --light-shadow: rgba(255, 0, 0, 0.2);
+    
+    /* P5 字体 */
+    --p5-font-heading: 'Bebas Neue', 'Arial Black', 'Noto Sans SC', sans-serif;
+    --p5-font-body: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+    
+    /* 兼容旧字体变量 */
+    --font-serif: var(--p5-font-body);
+    --font-sans: var(--p5-font-heading);
+}
 
 body {
     font-family: var(--font-serif);
@@ -66,6 +107,131 @@ body::after {
         0 10px 40px var(--shadow-color);
 }
 
+/* --- P5 风格页面过渡动画关键帧 --- */
+@keyframes p5-slide-in {
+    0% {
+        transform: translateX(-100%) skewX(-10deg);
+        opacity: 0;
+    }
+    60% {
+        transform: translateX(5%) skewX(-2deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translateX(0) skewX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes p5-slide-in-right {
+    0% {
+        transform: translateX(100%) skewX(10deg);
+        opacity: 0;
+    }
+    60% {
+        transform: translateX(-5%) skewX(2deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translateX(0) skewX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes p5-fade-in {
+    0% {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes p5-fade-in-up {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes p5-zoom-in {
+    0% {
+        opacity: 0;
+        transform: scale(0.8) rotate(-2deg);
+    }
+    50% {
+        transform: scale(1.02) rotate(0.5deg);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) rotate(0);
+    }
+}
+
+/* --- P5 风格交互动画关键帧 --- */
+@keyframes p5-button-press {
+    0% {
+        transform: skewX(var(--p5-skew)) scale(1);
+    }
+    50% {
+        transform: skewX(var(--p5-skew)) scale(0.95);
+    }
+    100% {
+        transform: skewX(var(--p5-skew)) scale(1);
+    }
+}
+
+/* 
+ * 性能优化说明：p5-input-focus-glow 使用 box-shadow 动画
+ * box-shadow 不是 GPU 加速属性，但此动画仅在 focus 时触发一次
+ * 且持续时间短（300ms），对性能影响可接受
+ * 替代方案：使用 ::after 伪元素 + opacity 动画，但会增加复杂度
+ */
+@keyframes p5-input-focus-glow {
+    0% {
+        box-shadow: 0 0 0 rgba(255, 0, 0, 0);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(255, 0, 0, 0.6);
+    }
+    100% {
+        box-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
+    }
+}
+
+@keyframes p5-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+@keyframes p5-shake {
+    0%, 100% {
+        transform: translateX(0);
+    }
+    20% {
+        transform: translateX(-5px);
+    }
+    40% {
+        transform: translateX(5px);
+    }
+    60% {
+        transform: translateX(-3px);
+    }
+    80% {
+        transform: translateX(3px);
+    }
+}
+
 /* --- View Management --- */
 .view {
     display: none;
@@ -76,146 +242,376 @@ body::after {
 }
 .view.active {
     display: flex;
+    /* P5 风格视图切换动画 */
+    animation: p5-fade-in var(--p5-transition-slow) ease-out;
 }
 
-/* --- Login View: Jade Tablet --- */
+/* --- Login View: P5 Style --- */
 #login-view {
     justify-content: center;
     align-items: center;
     text-align: center;
+    background: var(--p5-black);
+    /* P5 风格斜条纹背景 */
+    background-image: 
+        repeating-linear-gradient(
+            45deg,
+            transparent,
+            transparent 20px,
+            rgba(255, 0, 0, 0.03) 20px,
+            rgba(255, 0, 0, 0.03) 40px
+        ),
+        repeating-linear-gradient(
+            -45deg,
+            transparent,
+            transparent 20px,
+            rgba(255, 0, 0, 0.02) 20px,
+            rgba(255, 0, 0, 0.02) 40px
+        );
+    position: relative;
+    overflow: hidden;
+}
+
+/* P5 风格几何装饰元素 */
+#login-view::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: 
+        linear-gradient(
+            135deg,
+            transparent 40%,
+            rgba(255, 0, 0, 0.05) 40%,
+            rgba(255, 0, 0, 0.05) 60%,
+            transparent 60%
+        );
+    animation: p5-bg-shift 20s linear infinite;
+    pointer-events: none;
+}
+
+#login-view::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, transparent, var(--p5-red), transparent);
+}
+
+@keyframes p5-bg-shift {
+    0% { transform: translateX(-25%) translateY(-25%); }
+    100% { transform: translateX(25%) translateY(25%); }
 }
 
 #login-view h1 {
-    font-family: var(--font-sans);
-    font-size: 3.5rem;
-    color: #fff;
-    text-shadow: 0 0 10px rgba(255,255,255,0.3), 2px 2px 5px var(--shadow-color);
-    margin-bottom: 2rem;
-    letter-spacing: 0.2em;
+    font-family: var(--p5-font-heading);
+    font-size: 4rem;
+    color: var(--p5-white);
+    text-shadow: 
+        0 0 20px rgba(255, 0, 0, 0.5),
+        4px 4px 0 var(--p5-red);
+    margin-bottom: 1rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    position: relative;
+    z-index: 1;
+    /* P5 风格标题入场动画 */
+    animation: p5-slide-in var(--p5-transition-slow) ease-out;
 }
 
 #login-view p {
-    color: #eee;
-    text-shadow: 1px 1px 3px var(--shadow-color);
+    color: var(--p5-gray-light);
+    text-shadow: none;
+    font-family: var(--p5-font-body);
     font-size: 1.1rem;
     margin-bottom: 2.5rem;
+    position: relative;
+    z-index: 1;
+    /* P5 风格副标题入场动画 */
+    animation: p5-fade-in-up var(--p5-transition-slow) ease-out 0.1s both;
 }
 
 #login-form {
-    background: var(--panel-bg);
+    background: var(--p5-dark);
     padding: 2.5rem;
-    border-radius: 6px;
-    border: 1px solid var(--border-color);
-    box-shadow: 0 4px 20px var(--shadow-color);
-    backdrop-filter: blur(5px);
+    border-radius: 0;
+    border: none;
+    border-left: 4px solid var(--p5-red);
+    box-shadow: 
+        0 0 30px rgba(255, 0, 0, 0.2),
+        inset 0 0 20px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
     width: 100%;
     max-width: 400px;
+    transform: skewX(var(--p5-skew));
+    position: relative;
+    z-index: 1;
+    /* P5 风格表单入场动画 */
+    animation: p5-slide-in-right var(--p5-transition-slow) ease-out 0.2s both;
+}
+
+/* 表单内容反向斜切保持可读性 */
+#login-form > * {
+    transform: skewX(calc(var(--p5-skew) * -1));
 }
 
 #login-form input {
     display: block;
     margin: 1.2rem auto;
-    padding: 0.8rem 1rem;
+    padding: 1rem 1.2rem;
     width: 90%;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    background: #fff;
-    font-family: var(--font-serif);
+    border: 2px solid var(--p5-gray-dark);
+    border-radius: 0;
+    background: var(--p5-darker);
+    color: var(--p5-white);
+    font-family: var(--p5-font-body);
     font-size: 1.1rem;
-    transition: all 0.3s ease;
+    transition: all var(--p5-transition-normal) ease;
+}
+
+#login-form input::placeholder {
+    color: var(--p5-gray);
 }
 
 #login-form input:focus {
     outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 10px rgba(106, 139, 106, 0.5);
+    border-color: var(--p5-red);
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
+    background: var(--p5-black);
+    /* P5 风格 focus 动画 */
+    animation: p5-input-focus-glow var(--p5-transition-normal) ease-out;
 }
 
 .login-button {
     display: inline-block;
-    padding: 0.8rem 2.5rem;
-    background: linear-gradient(145deg, var(--accent-color), #c95c53);
-    color: white;
-    border: 1px solid rgba(255, 255, 255, 0.3);
-    border-radius: 50px;
+    padding: 1rem 3rem;
+    background: var(--p5-red);
+    color: var(--p5-white);
+    border: none;
+    border-radius: 0;
     cursor: pointer;
     margin-top: 1.5rem;
-    font-family: var(--font-sans);
-    font-size: 1.2rem;
+    font-family: var(--p5-font-heading);
+    font-size: 1.4rem;
     font-weight: bold;
     text-decoration: none;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2), inset 0 2px 2px rgba(255, 255, 255, 0.2);
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    transition: all var(--p5-transition-normal) ease;
+    box-shadow: 
+        0 4px 15px rgba(255, 0, 0, 0.4),
+        inset 0 0 0 2px rgba(255, 255, 255, 0.1);
+    transform: skewX(var(--p5-skew));
+    position: relative;
+    overflow: hidden;
+}
+
+/* P5 风格光泽滑动效果 */
+.login-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg, 
+        transparent, 
+        rgba(255, 255, 255, 0.3), 
+        transparent
+    );
+    transition: left var(--p5-transition-slow) ease;
+}
+
+.login-button:hover::before {
+    left: 100%;
 }
 
 .login-button:hover {
-    background: linear-gradient(145deg, #c95c53, var(--accent-color));
-    transform: translateY(-3px);
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3), inset 0 2px 3px rgba(255, 255, 255, 0.3);
-    color: white;
+    background: var(--p5-red-light);
+    transform: skewX(var(--p5-skew)) translateY(-3px);
+    box-shadow: 
+        0 8px 25px rgba(255, 0, 0, 0.5),
+        inset 0 0 0 2px rgba(255, 255, 255, 0.2);
+    color: var(--p5-white);
+}
+
+.login-button:active {
+    transform: skewX(var(--p5-skew)) translateY(-1px) scale(0.98);
+    box-shadow: 
+        0 4px 15px rgba(255, 0, 0, 0.4),
+        inset 0 0 0 2px rgba(255, 255, 255, 0.1);
+    /* P5 风格按钮点击反馈 */
+    animation: p5-button-press var(--p5-transition-fast) ease-out;
 }
 
 .error-message {
-    color: var(--accent-color);
+    color: var(--p5-warning);
     height: 1.5rem;
     font-weight: bold;
+    font-family: var(--p5-font-body);
+    text-shadow: 0 0 10px rgba(255, 255, 0, 0.3);
+    background: rgba(255, 255, 0, 0.1);
+    padding: 0.3rem 0.8rem;
+    margin-top: 0.5rem;
+    /* P5 风格错误消息动画 */
+    animation: p5-shake var(--p5-transition-normal) ease-out;
 }
 
-/* --- Game View: Lattice Window Layout --- */
+/* --- Game View: P5 Style Layout --- */
 #game-view {
     padding: 0;
     display: grid;
-    grid-template-columns: 240px 1fr;
+    grid-template-columns: 260px 1fr;
     grid-template-rows: auto 1fr auto;
     grid-template-areas:
         "header header"
         "status main"
         "status action";
-    gap: 2px;
-    background-color: #5a4a3a;
+    gap: 3px;
+    background-color: var(--p5-red);
+    /* P5 风格深色背景 */
+    background-image: 
+        linear-gradient(135deg, var(--p5-red-dark) 0%, var(--p5-red) 50%, var(--p5-red-dark) 100%);
 }
 
 #game-header, #status-panel, #main-content, #action-area {
-    background: var(--panel-bg);
+    background: var(--p5-dark);
     padding: 1rem;
+    /* P5 风格边框效果 */
+    position: relative;
 }
 
+/* P5 风格游戏视图各区域入场动画 */
 #game-header {
     grid-area: header;
     display: flex;
     justify-content: space-between;
     align-items: center;
+    background: var(--p5-black);
+    border-bottom: 3px solid var(--p5-red);
+    padding: 0.8rem 1.5rem;
+    animation: p5-fade-in-up var(--p5-transition-normal) ease-out;
+}
+
+#status-panel {
+    grid-area: status;
+    padding: 1.5rem;
+    overflow-y: auto;
+    background: var(--p5-darker);
+    border-right: 3px solid var(--p5-red);
+    /* P5 风格斜条纹装饰 */
+    background-image: 
+        repeating-linear-gradient(
+            -45deg,
+            transparent,
+            transparent 30px,
+            rgba(255, 0, 0, 0.03) 30px,
+            rgba(255, 0, 0, 0.03) 60px
+        );
+    animation: p5-slide-in var(--p5-transition-slow) ease-out 0.1s both;
+}
+
+#main-content {
+    grid-area: main;
+    overflow-y: hidden;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+    background: var(--p5-dark);
+    animation: p5-fade-in var(--p5-transition-slow) ease-out 0.15s both;
+}
+
+#action-area {
+    grid-area: action;
+    border-top: 3px solid var(--p5-red);
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    background: var(--p5-black);
+    padding: 1.2rem 1.5rem;
+    animation: p5-fade-in-up var(--p5-transition-slow) ease-out 0.2s both;
 }
 
 #game-header h1 {
     margin: 0;
-    font-family: var(--font-sans);
-    font-size: 1.8rem;
-    color: var(--title-color);
+    font-family: var(--p5-font-heading);
+    font-size: 2rem;
+    color: var(--p5-white);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    text-shadow: 2px 2px 0 var(--p5-red);
 }
 
+/* P5 风格头部按钮 */
 .header-button {
-    padding: 0.4rem 0.8rem;
+    padding: 0.5rem 1rem;
     background: transparent;
-    color: var(--text-color);
-    border: 1px solid var(--border-color);
-    border-radius: 4px;
+    color: var(--p5-white);
+    border: 2px solid var(--p5-red);
+    border-radius: 0;
     cursor: pointer;
-    font-family: var(--font-sans);
-    font-size: 0.9rem;
-    transition: all 0.3s ease;
+    font-family: var(--p5-font-heading);
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: all var(--p5-transition-normal) ease;
+    transform: skewX(var(--p5-skew-subtle));
+    position: relative;
+    overflow: hidden;
+}
+
+.header-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 0, 0, 0.3), transparent);
+    transition: left var(--p5-transition-normal) ease;
 }
 
 .header-button:hover {
-    background: rgba(0,0,0,0.05);
-    border-color: var(--accent-color);
-    color: var(--accent-color);
+    background: var(--p5-red);
+    color: var(--p5-white);
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+}
+
+.header-button:hover::before {
+    left: 100%;
+}
+
+.header-button:active {
+    transform: skewX(var(--p5-skew-subtle)) scale(0.95);
+    /* P5 风格按钮点击反馈 */
+    transition: transform var(--p5-transition-fast) ease-out;
 }
 
 #fullscreen-button {
-    font-size: 1.1rem;
-    padding: 0.3rem 0.6rem;
+    font-size: 1.2rem;
+    padding: 0.4rem 0.7rem;
+}
+
+#game-status {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+#game-status > span {
+    font-family: var(--p5-font-body);
+    font-weight: bold;
+    color: var(--p5-gray-light);
+}
+
+#game-status #opportunities {
+    color: var(--p5-red);
+    font-size: 1.2em;
 }
 
 /* App Fullscreen Mode */
@@ -231,74 +627,94 @@ body.app-fullscreen #app-container {
     border: none;
 }
 
-#status-panel {
-    grid-area: status;
-    padding: 1.5rem;
-    overflow-y: auto;
-    border-right: 2px solid #5a4a3a;
-}
 #status-panel p {
-    font-family: var(--font-sans);
+    font-family: var(--p5-font-heading);
     font-weight: bold;
-    color: var(--title-color);
-    font-size: 1.2rem;
-    border-bottom: 1px solid var(--border-color);
-    padding-bottom: 0.5rem;
+    color: var(--p5-white);
+    font-size: 1.3rem;
+    border-bottom: 2px solid var(--p5-red);
+    padding-bottom: 0.6rem;
     margin-top: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
 }
+
 #character-status {
     font-size: 0.95rem;
     line-height: 1.8;
     white-space: pre-wrap;
     word-break: break-all;
+    color: var(--p5-gray-light);
 }
 
-/* Collapsible Section Styling */
+/* P5 风格折叠面板 */
 #character-status details {
-    margin-bottom: 0.5rem;
-    border: 1px solid rgba(0,0,0,0.1);
-    border-radius: 4px;
+    margin-bottom: 0.8rem;
+    border: 2px solid var(--p5-gray-dark);
+    border-radius: 0;
+    background: var(--p5-dark);
+    transition: all var(--p5-transition-normal) ease;
+}
+
+#character-status details:hover {
+    border-color: var(--p5-red);
+}
+
+#character-status details[open] {
+    border-color: var(--p5-red);
+    box-shadow: 0 0 10px rgba(255, 0, 0, 0.2);
 }
 
 #character-status summary {
+    font-family: var(--p5-font-body);
     font-weight: bold;
     cursor: pointer;
-    padding: 0.5rem;
-    background-color: rgba(0,0,0,0.03);
+    padding: 0.7rem 1rem;
+    background: var(--p5-dark);
+    color: var(--p5-white);
     outline: none;
+    transition: all var(--p5-transition-fast) ease;
+    border-left: 3px solid transparent;
+}
+
+#character-status summary:hover {
+    background: var(--p5-darker);
+    border-left-color: var(--p5-red);
+}
+
+#character-status details[open] summary {
+    background: var(--p5-black);
+    border-left-color: var(--p5-red);
 }
 
 #character-status summary::marker {
-    color: var(--primary-color);
+    color: var(--p5-red);
 }
 
 #character-status .details-content {
-    padding: 0.5rem 0.5rem 0.5rem 1.5rem;
-    background-color: rgba(0,0,0,0.01);
+    padding: 0.8rem 1rem 0.8rem 1.5rem;
+    background: var(--p5-darker);
+    border-top: 1px solid var(--p5-gray-dark);
 }
 
 .property-item {
     display: flex;
     justify-content: space-between;
-    padding: 0.2rem 0;
+    padding: 0.3rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.property-item:last-child {
+    border-bottom: none;
 }
 
 .property-key {
     font-weight: bold;
-    color: var(--title-color);
+    color: var(--p5-gray-light);
 }
 
 .property-value {
-    color: var(--text-color);
-}
-
-
-#main-content {
-    grid-area: main;
-    overflow-y: hidden;
-    display: flex;
-    flex-direction: column;
-    padding: 0;
+    color: var(--p5-white);
 }
 
 #narrative-window {
@@ -307,203 +723,706 @@ body.app-fullscreen #app-container {
     overflow-y: auto;
     line-height: 2;
     font-size: 1.1rem;
+    background: var(--p5-darker);
+    color: var(--p5-white);
+    /* P5 风格微妙的边框效果 */
+    border-left: 1px solid rgba(255, 0, 0, 0.2);
 }
 
-/* Narrative content styling */
+/* P5 风格叙事内容样式 */
 #narrative-window p, #narrative-window h1, #narrative-window h2, #narrative-window h3, #narrative-window ul, #narrative-window ol, #narrative-window blockquote {
     margin: 0 0 1.5em 0;
 }
 
 #narrative-window h1, #narrative-window h2, #narrative-window h3 {
-    font-family: var(--font-sans);
-    color: var(--title-color);
+    font-family: var(--p5-font-heading);
+    color: var(--p5-white);
     margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    text-shadow: 2px 2px 0 var(--p5-red-dark);
+    border-bottom: 2px solid var(--p5-red);
+    padding-bottom: 0.5rem;
+}
+
+#narrative-window h1 {
+    font-size: 1.8rem;
+}
+
+#narrative-window h2 {
+    font-size: 1.5rem;
+}
+
+#narrative-window h3 {
+    font-size: 1.2rem;
+}
+
+#narrative-window p {
+    color: var(--p5-gray-light);
+    line-height: 2;
+}
+
+#narrative-window strong {
+    color: var(--p5-white);
+}
+
+#narrative-window em {
+    color: var(--p5-red-light);
+    font-style: italic;
 }
 
 #narrative-window ul, #narrative-window ol {
     padding-left: 2em;
+    color: var(--p5-gray-light);
+}
+
+#narrative-window li {
+    margin-bottom: 0.5em;
+}
+
+#narrative-window li::marker {
+    color: var(--p5-red);
 }
 
 #narrative-window blockquote {
-    border-left: 3px solid var(--primary-color);
-    padding-left: 1em;
-    margin-left: 0.5em;
-    color: #555;
+    border-left: 4px solid var(--p5-red);
+    padding: 1em 1.5em;
+    margin-left: 0;
+    background: var(--p5-black);
+    color: var(--p5-gray-light);
     font-style: italic;
+    box-shadow: inset 0 0 20px rgba(255, 0, 0, 0.1);
 }
 
 #narrative-window code {
-    background-color: #e8e8e8;
-    border-radius: 3px;
-    padding: 0.2em 0.4em;
-    font-family: monospace;
+    background-color: var(--p5-black);
+    border: 1px solid var(--p5-gray-dark);
+    border-radius: 0;
+    padding: 0.2em 0.5em;
+    font-family: 'Consolas', 'Monaco', monospace;
+    color: var(--p5-red-light);
 }
+
 #narrative-window pre {
-    background-color: #e8e8e8;
-    padding: 1em;
-    border-radius: 4px;
+    background-color: var(--p5-black);
+    border: 2px solid var(--p5-gray-dark);
+    border-left: 4px solid var(--p5-red);
+    padding: 1.2em;
+    border-radius: 0;
     overflow-x: auto;
 }
+
 #narrative-window pre code {
     padding: 0;
     background: none;
+    border: none;
+    color: var(--p5-gray-light);
 }
 
-/* Generated scene images */
+/* P5 风格图片样式 */
 #narrative-window img {
     max-width: 100%;
-    max-height: 36rem; /* 6xl = 36rem */
+    max-height: 36rem;
     width: auto;
     height: auto;
     display: block;
-    margin: 1rem auto;
-    border-radius: 8px;
-    box-shadow: 0 4px 15px var(--shadow-color);
+    margin: 1.5rem auto;
+    border-radius: 0;
+    border: 3px solid var(--p5-red);
+    box-shadow: 
+        0 0 20px rgba(255, 0, 0, 0.3),
+        0 8px 30px rgba(0, 0, 0, 0.5);
+    transition: all var(--p5-transition-normal) ease;
+}
+
+#narrative-window img:hover {
+    box-shadow: 
+        0 0 30px rgba(255, 0, 0, 0.5),
+        0 12px 40px rgba(0, 0, 0, 0.6);
+    transform: scale(1.02);
+}
+
+/* P5 风格链接 */
+#narrative-window a {
+    color: var(--p5-red);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: all var(--p5-transition-fast) ease;
+}
+
+#narrative-window a:hover {
+    color: var(--p5-red-light);
+    border-bottom-color: var(--p5-red);
+}
+
+/* P5 风格水平线 */
+#narrative-window hr {
+    border: none;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, var(--p5-red), transparent);
+    margin: 2rem 0;
 }
 
 
-/* --- Action Footer --- */
-#action-area {
-    grid-area: action;
-    border-top: 2px solid #5a4a3a;
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
+/* --- P5 风格行动输入区域 --- */
 .action-input-row {
     display: flex;
-    gap: 0.8rem;
+    gap: 1rem;
+    align-items: stretch;
 }
 
 #action-input {
     flex-grow: 1;
-    padding: 0.8rem 1.2rem;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    background: #fff;
-    font-family: inherit;
+    padding: 0.9rem 1.2rem;
+    border: 2px solid var(--p5-gray-dark);
+    border-radius: 0;
+    background: var(--p5-darker);
+    color: var(--p5-white);
+    font-family: var(--p5-font-body);
     font-size: 1rem;
-    transition: all 0.3s ease;
+    transition: all var(--p5-transition-normal) ease;
+    transform: skewX(var(--p5-skew-subtle));
+}
+
+#action-input::placeholder {
+    color: var(--p5-gray);
 }
 
 #action-input:focus {
     outline: none;
-    border-color: var(--primary-color);
-    box-shadow: 0 0 10px rgba(106, 139, 106, 0.5);
+    border-color: var(--p5-red);
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
+    background: var(--p5-black);
+    /* P5 风格 focus 动画 */
+    animation: p5-input-focus-glow var(--p5-transition-normal) ease-out;
 }
 
+/* P5 风格行动按钮 */
 #action-button, #start-trial-button {
-    padding: 0.8rem 1.5rem;
-    background: var(--primary-color);
-    color: white;
+    padding: 0.9rem 2rem;
+    background: var(--p5-red);
+    color: var(--p5-white);
     border: none;
-    border-radius: 4px;
+    border-radius: 0;
     cursor: pointer;
-    font-family: var(--font-sans);
-    font-size: 1rem;
+    font-family: var(--p5-font-heading);
+    font-size: 1.1rem;
     font-weight: bold;
-    transition: all 0.3s ease;
-    box-shadow: 0 2px 5px var(--light-shadow);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    transition: all var(--p5-transition-normal) ease;
+    box-shadow: 
+        0 4px 15px rgba(255, 0, 0, 0.4),
+        inset 0 0 0 2px rgba(255, 255, 255, 0.1);
+    transform: skewX(var(--p5-skew));
+    position: relative;
+    overflow: hidden;
+}
+
+#action-button::before, #start-trial-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    transition: left var(--p5-transition-slow) ease;
+}
+
+#action-button:hover:not(:disabled)::before, 
+#start-trial-button:hover:not(:disabled)::before {
+    left: 100%;
 }
 
 #action-button:hover:not(:disabled), #start-trial-button:hover:not(:disabled) {
-    background: #82a882;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 10px var(--light-shadow);
+    background: var(--p5-red-light);
+    transform: skewX(var(--p5-skew)) translateY(-2px);
+    box-shadow: 
+        0 8px 25px rgba(255, 0, 0, 0.5),
+        inset 0 0 0 2px rgba(255, 255, 255, 0.2);
+}
+
+#action-button:active:not(:disabled), #start-trial-button:active:not(:disabled) {
+    transform: skewX(var(--p5-skew)) translateY(-1px) scale(0.98);
+    /* P5 风格按钮点击反馈 */
+    animation: p5-button-press var(--p5-transition-fast) ease-out;
 }
 
 #start-trial-button {
-    background: var(--accent-color);
-}
-#start-trial-button:hover:not(:disabled) {
-    background: #c95c53;
+    background: var(--p5-red-dark);
+    width: 100%;
+    padding: 1rem 2rem;
 }
 
-#action-input:disabled, #action-button:disabled {
-    background: #e9e9e9;
-    color: #999;
+#start-trial-button:hover:not(:disabled) {
+    background: var(--p5-red);
+}
+
+/* P5 风格禁用状态 */
+#action-input:disabled {
+    background: var(--p5-black);
+    color: var(--p5-gray-dark);
+    border-color: var(--p5-gray-dark);
     cursor: not-allowed;
-    opacity: 0.7;
-    transform: none;
+    opacity: 0.6;
+}
+
+#action-button:disabled, #start-trial-button:disabled {
+    background: var(--p5-gray-dark);
+    color: var(--p5-gray);
+    cursor: not-allowed;
+    opacity: 0.5;
+    transform: skewX(var(--p5-skew));
     box-shadow: none;
 }
 
-/* --- Overlays & Spinners --- */
+/* --- Overlays & Spinners: P5 Style --- */
 .hidden { display: none !important; }
 
 .spinner-overlay {
     position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background-color: rgba(255, 255, 255, 0.7);
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%;
+    /* P5 风格深色半透明背景 */
+    background-color: rgba(0, 0, 0, 0.85);
+    /* P5 风格斜条纹背景 */
+    background-image: 
+        repeating-linear-gradient(
+            45deg,
+            transparent,
+            transparent 15px,
+            rgba(255, 0, 0, 0.05) 15px,
+            rgba(255, 0, 0, 0.05) 30px
+        );
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 1000;
+    /* P5 风格入场动画 */
+    animation: p5-fade-in var(--p5-transition-normal) ease-out;
 }
+
+/* P5 风格加载指示器 */
 .spinner {
-    border: 4px solid #f3f3f3;
-    border-top: 4px solid var(--primary-color);
-    border-radius: 50%;
-    width: 40px; height: 40px;
-    animation: spin 1s linear infinite;
+    width: 50px; 
+    height: 50px;
+    position: relative;
+    /* 移除默认边框样式 */
+    border: none;
+    border-radius: 0;
+    background: transparent;
+    animation: none;
+    /* GPU 加速优化：提示浏览器此元素将进行 transform 动画 */
+    will-change: transform;
 }
+
+/* P5 风格旋转方块 */
+.spinner::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 4px solid var(--p5-red);
+    border-radius: 0;
+    transform: rotate(45deg);
+    animation: p5-spinner-rotate 1s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+    box-shadow: 
+        0 0 15px rgba(255, 0, 0, 0.5),
+        inset 0 0 10px rgba(255, 0, 0, 0.2);
+    /* GPU 加速优化 */
+    will-change: transform;
+}
+
+/* P5 风格内部方块 */
+.spinner::after {
+    content: '';
+    position: absolute;
+    top: 25%;
+    left: 25%;
+    width: 50%;
+    height: 50%;
+    background: var(--p5-red);
+    transform: rotate(45deg);
+    animation: p5-spinner-pulse 1s ease-in-out infinite;
+    box-shadow: 0 0 20px rgba(255, 0, 0, 0.6);
+    /* GPU 加速优化 */
+    will-change: transform, opacity;
+}
+
+/* P5 风格旋转动画 */
+@keyframes p5-spinner-rotate {
+    0% {
+        transform: rotate(45deg) scale(1);
+    }
+    25% {
+        transform: rotate(135deg) scale(1.1);
+    }
+    50% {
+        transform: rotate(225deg) scale(1);
+    }
+    75% {
+        transform: rotate(315deg) scale(1.1);
+    }
+    100% {
+        transform: rotate(405deg) scale(1);
+    }
+}
+
+/* P5 风格脉冲动画 */
+@keyframes p5-spinner-pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: rotate(45deg) scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: rotate(45deg) scale(0.8);
+    }
+}
+
+/* 保留旧的 spin 动画作为回退 */
 @keyframes spin { 100% { transform: rotate(360deg); } }
 
-/* --- Roll Animation --- */
+/* --- P5 风格骰子动画覆盖层 --- */
 #roll-overlay {
     position: absolute;
-    top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(5px);
+    top: 0; 
+    left: 0; 
+    width: 100%; 
+    height: 100%;
+    /* P5 风格深色半透明背景 */
+    background: rgba(0, 0, 0, 0.95);
+    /* 动态斜条纹几何图案 */
+    background-image: 
+        repeating-linear-gradient(
+            45deg,
+            transparent,
+            transparent 10px,
+            rgba(255, 0, 0, 0.08) 10px,
+            rgba(255, 0, 0, 0.08) 20px
+        ),
+        repeating-linear-gradient(
+            -45deg,
+            transparent,
+            transparent 15px,
+            rgba(255, 0, 0, 0.05) 15px,
+            rgba(255, 0, 0, 0.05) 30px
+        );
+    backdrop-filter: blur(8px);
     display: flex;
     justify-content: center;
     align-items: center;
     z-index: 2000;
+    /* P5 风格动画入场效果 */
+    animation: p5-overlay-fade-in var(--p5-transition-normal) ease-out;
 }
+
+/* 覆盖层动态背景动画 */
+#roll-overlay::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: 
+        radial-gradient(
+            ellipse at center,
+            transparent 0%,
+            transparent 40%,
+            rgba(255, 0, 0, 0.1) 60%,
+            transparent 80%
+        );
+    animation: p5-overlay-pulse 2s ease-in-out infinite;
+    pointer-events: none;
+    /* GPU 加速优化 */
+    will-change: transform, opacity;
+}
+
+/* 覆盖层底部红色光条 - 使用静态 box-shadow + opacity 动画 */
+#roll-overlay::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(90deg, transparent, var(--p5-red), transparent);
+    box-shadow: 0 0 20px rgba(255, 0, 0, 0.7);
+    animation: p5-line-glow 1.5s ease-in-out infinite alternate;
+    /* GPU 加速优化 */
+    will-change: opacity;
+}
+
+/* 
+ * 性能优化：移除 backdrop-filter 动画，改为仅使用 opacity
+ * backdrop-filter 动画会导致重绘，影响性能
+ * 背景模糊效果通过静态 backdrop-filter 实现
+ */
+@keyframes p5-overlay-fade-in {
+    0% {
+        opacity: 0;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+@keyframes p5-overlay-pulse {
+    0%, 100% {
+        transform: scale(1) rotate(0deg);
+        opacity: 0.5;
+    }
+    50% {
+        transform: scale(1.1) rotate(5deg);
+        opacity: 0.8;
+    }
+}
+
+/* 
+ * 性能优化：p5-line-glow 使用 box-shadow 动画
+ * 此动画为装饰性效果，仅在覆盖层显示时运行
+ * 改为使用 opacity 动画配合静态 box-shadow 以提升性能
+ */
+@keyframes p5-line-glow {
+    0% {
+        opacity: 0.6;
+    }
+    100% {
+        opacity: 1;
+    }
+}
+
+/* P5 风格骰子面板 */
 #roll-panel {
-    background: var(--panel-bg);
+    background: var(--p5-dark);
     padding: 3rem 4rem;
-    border-radius: 6px;
-    border: 1px solid var(--border-color);
+    border-radius: 0;
+    /* P5 风格红色边框和斜切变换 */
+    border: 3px solid var(--p5-red);
+    border-left-width: 6px;
     text-align: center;
-    box-shadow: 0 0 30px rgba(0,0,0,0.5);
+    /* P5 风格发光效果 */
+    box-shadow: 
+        0 0 40px rgba(255, 0, 0, 0.5),
+        0 0 80px rgba(255, 0, 0, 0.2),
+        inset 0 0 30px rgba(255, 0, 0, 0.1);
+    transform: skewX(var(--p5-skew));
+    position: relative;
+    z-index: 1;
+    /* 入场动画 */
+    animation: p5-panel-slide-in var(--p5-transition-slow) cubic-bezier(0.34, 1.56, 0.64, 1);
+    /* GPU 加速优化：面板入场动画 */
+    will-change: transform, opacity;
 }
+
+/* 面板内容反向斜切保持可读性 */
+#roll-panel > * {
+    transform: skewX(calc(var(--p5-skew) * -1));
+}
+
+/* 面板顶部装饰线 */
+#roll-panel::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: linear-gradient(90deg, var(--p5-red), var(--p5-red-light), var(--p5-red));
+    transform: skewX(calc(var(--p5-skew) * -1));
+}
+
+/* 面板角落装饰 */
+#roll-panel::after {
+    content: '';
+    position: absolute;
+    bottom: -3px;
+    right: -3px;
+    width: 30px;
+    height: 30px;
+    border-right: 3px solid var(--p5-red);
+    border-bottom: 3px solid var(--p5-red);
+    transform: skewX(calc(var(--p5-skew) * -1));
+}
+
+@keyframes p5-panel-slide-in {
+    0% {
+        opacity: 0;
+        transform: skewX(var(--p5-skew)) translateX(-50px) scale(0.9);
+    }
+    100% {
+        opacity: 1;
+        transform: skewX(var(--p5-skew)) translateX(0) scale(1);
+    }
+}
+
+/* P5 风格骰子杯动画 */
 .dice-cup {
     font-size: 5rem;
-    animation: diceRoll 1s cubic-bezier(.36,.07,.19,.97) both;
+    animation: p5-dice-roll 1s cubic-bezier(.36,.07,.19,.97) both;
+    filter: drop-shadow(0 0 20px rgba(255, 0, 0, 0.5));
+    /* GPU 加速优化：骰子旋转动画 */
+    will-change: transform, filter;
 }
+
+@keyframes p5-dice-roll {
+    0% { 
+        transform: rotate(0) scale(1); 
+        filter: drop-shadow(0 0 10px rgba(255, 0, 0, 0.3));
+    }
+    25% { 
+        transform: rotate(90deg) scale(1.1); 
+        filter: drop-shadow(0 0 20px rgba(255, 0, 0, 0.6));
+    }
+    50% { 
+        transform: rotate(180deg) scale(1); 
+        filter: drop-shadow(0 0 30px rgba(255, 0, 0, 0.8));
+    }
+    75% { 
+        transform: rotate(270deg) scale(1.1); 
+        filter: drop-shadow(0 0 20px rgba(255, 0, 0, 0.6));
+    }
+    100% { 
+        transform: rotate(360deg) scale(1); 
+        filter: drop-shadow(0 0 20px rgba(255, 0, 0, 0.5));
+    }
+}
+
+/* P5 风格判定详情 */
 #roll-details {
-    font-size: 1.3rem; margin: 1.5rem 0;
-    color: var(--title-color); font-weight: bold;
+    font-family: var(--p5-font-body);
+    font-size: 1.3rem; 
+    margin: 1.5rem 0;
+    color: var(--p5-white); 
+    font-weight: bold;
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
 }
+
+/* P5 风格结果显示 */
 #roll-result-display {
-    margin-top: 2rem; font-size: 2rem; font-weight: bold;
+    margin-top: 2rem; 
+    font-family: var(--p5-font-heading);
+    font-size: 2rem; 
+    font-weight: bold;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    animation: p5-result-appear 0.5s ease-out 0.8s both;
 }
+
+@keyframes p5-result-appear {
+    0% {
+        opacity: 0;
+        transform: scale(0.5) translateY(20px);
+    }
+    50% {
+        transform: scale(1.1) translateY(-5px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+/* P5 风格骰子数值 */
 #roll-value {
-    font-size: 3rem; margin-left: 1rem; color: var(--text-color);
-}
-.outcome-大成功 { color: var(--accent-color); }
-.outcome-成功 { color: var(--primary-color); }
-.outcome-失败 { color: #888; }
-.outcome-大失败 { color: #b8463f; }
-
-@keyframes diceRoll {
-  0% { transform: rotate(0); }
-  100% { transform: rotate(360deg); }
+    font-family: var(--p5-font-heading);
+    font-size: 3.5rem; 
+    margin-left: 1rem; 
+    color: var(--p5-white);
+    text-shadow: 
+        0 0 20px rgba(255, 255, 255, 0.5),
+        3px 3px 0 var(--p5-red);
 }
 
-/* --- Responsive Design --- */
+/* P5 风格结果类型颜色 - 根据结果使用不同颜色 */
+.outcome-大成功 { 
+    color: var(--p5-warning) !important; /* 金黄色 - 大成功 */
+    text-shadow: 
+        0 0 30px rgba(255, 255, 0, 0.8),
+        0 0 60px rgba(255, 255, 0, 0.4),
+        4px 4px 0 var(--p5-red-dark);
+    animation: p5-critical-success 0.5s ease-out 0.8s both;
+}
+
+.outcome-成功 { 
+    color: var(--p5-success) !important; /* 绿色 - 成功 */
+    text-shadow: 
+        0 0 20px rgba(0, 255, 0, 0.6),
+        3px 3px 0 var(--p5-dark);
+}
+
+.outcome-失败 { 
+    color: var(--p5-gray) !important; /* 灰色 - 失败 */
+    text-shadow: 
+        0 0 10px rgba(136, 136, 136, 0.4),
+        2px 2px 0 var(--p5-black);
+}
+
+.outcome-大失败 { 
+    color: var(--p5-red) !important; /* 红色 - 大失败 */
+    text-shadow: 
+        0 0 30px rgba(255, 0, 0, 0.8),
+        0 0 60px rgba(255, 0, 0, 0.4),
+        4px 4px 0 var(--p5-black);
+    animation: p5-critical-fail 0.5s ease-out 0.8s both;
+}
+
+/* 大成功特效动画 */
+@keyframes p5-critical-success {
+    0% {
+        opacity: 0;
+        transform: scale(0.5) rotate(-10deg);
+    }
+    50% {
+        transform: scale(1.3) rotate(5deg);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) rotate(0);
+    }
+}
+
+/* 大失败特效动画 */
+@keyframes p5-critical-fail {
+    0% {
+        opacity: 0;
+        transform: scale(0.5);
+    }
+    25% {
+        transform: scale(1.2) translateX(-5px);
+    }
+    50% {
+        transform: scale(1.2) translateX(5px);
+    }
+    75% {
+        transform: scale(1.1) translateX(-3px);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1) translateX(0);
+    }
+}
+
+/* --- Responsive Design: P5 Style --- */
 @media (max-width: 850px) {
     body {
         padding: 0;
     }
+    
     #app-container {
         height: 100vh;
         max-height: none;
         border-radius: 0;
         border: none;
     }
+    
+    /* 单列布局保持 P5 风格 */
     #game-view {
         grid-template-columns: 1fr;
         grid-template-rows: auto auto 1fr auto;
@@ -512,14 +1431,302 @@ body.app-fullscreen #app-container {
             "status"
             "main"
             "action";
+        /* 保持 P5 风格红色分隔线 */
+        gap: 2px;
+        background: var(--p5-red);
     }
+    
+    /* 头部区域移动端优化 */
+    #game-header {
+        padding: 0.6rem 1rem;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    #game-header h1 {
+        font-size: 1.5rem;
+    }
+    
+    /* 状态面板移动端优化 */
     #status-panel {
         border-right: none;
-        border-bottom: 2px solid #5a4a3a;
-        max-height: 150px;
-        padding: 0.5rem 1rem;
+        border-bottom: 3px solid var(--p5-red);
+        max-height: 180px;
+        padding: 0.8rem 1rem;
+        overflow-y: auto;
     }
-    #narrative-window { padding: 1rem; }
-    .action-input-row { flex-direction: column; gap: 0.5rem; }
-    #action-button { width: 100%; }
+    
+    #status-panel p {
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    /* 叙事窗口移动端优化 */
+    #narrative-window { 
+        padding: 1rem;
+        font-size: 1rem;
+        line-height: 1.8;
+    }
+    
+    #narrative-window h1 {
+        font-size: 1.5rem;
+    }
+    
+    #narrative-window h2 {
+        font-size: 1.3rem;
+    }
+    
+    #narrative-window h3 {
+        font-size: 1.1rem;
+    }
+    
+    /* 行动区域移动端优化 */
+    #action-area {
+        padding: 1rem;
+    }
+    
+    .action-input-row { 
+        flex-direction: column; 
+        gap: 0.8rem; 
+    }
+    
+    #action-button { 
+        width: 100%; 
+    }
+    
+    /* 移动端移除斜切变换以提高可用性 */
+    #action-input {
+        transform: none;
+    }
+    
+    #action-button, #start-trial-button {
+        transform: none;
+    }
+    
+    #action-button:hover:not(:disabled), #start-trial-button:hover:not(:disabled) {
+        transform: translateY(-2px);
+    }
+    
+    .header-button {
+        transform: none;
+    }
+    
+    /* 登录视图移动端优化 */
+    #login-view h1 {
+        font-size: 2.5rem;
+    }
+    
+    #login-view p {
+        font-size: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    #login-form {
+        padding: 1.5rem;
+        max-width: 90%;
+        transform: none;
+    }
+    
+    #login-form > * {
+        transform: none;
+    }
+    
+    .login-button {
+        transform: none;
+        padding: 0.9rem 2rem;
+        font-size: 1.2rem;
+    }
+    
+    .login-button:hover {
+        transform: translateY(-2px);
+    }
+    
+    /* 骰子面板移动端优化 */
+    #roll-panel {
+        padding: 2rem;
+        transform: none;
+        margin: 1rem;
+        max-width: calc(100% - 2rem);
+    }
+    
+    #roll-panel > * {
+        transform: none;
+    }
+    
+    .dice-cup {
+        font-size: 4rem;
+    }
+    
+    #roll-value {
+        font-size: 2.5rem;
+    }
+    
+    #roll-result-display {
+        font-size: 1.5rem;
+    }
+    
+    #roll-details {
+        font-size: 1.1rem;
+    }
+}
+
+
+/* --- 触摸目标尺寸优化 (最小 44px) --- */
+@media (max-width: 850px) {
+    /* 确保所有按钮最小触摸目标为 44px */
+    .login-button,
+    .header-button,
+    #action-button,
+    #start-trial-button,
+    #fullscreen-button {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    /* 输入框触摸目标优化 */
+    #login-form input,
+    #action-input {
+        min-height: 44px;
+        padding: 0.8rem 1rem;
+    }
+    
+    /* 折叠面板 summary 触摸目标优化 */
+    #character-status summary {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+    }
+    
+    /* 头部按钮触摸目标优化 */
+    .header-button {
+        padding: 0.6rem 1rem;
+    }
+    
+    #fullscreen-button {
+        padding: 0.6rem 0.8rem;
+    }
+}
+
+/* 通用触摸目标优化 - 适用于所有触摸设备 */
+@media (pointer: coarse) {
+    /* 粗指针设备（触摸屏）的按钮优化 */
+    .login-button,
+    .header-button,
+    #action-button,
+    #start-trial-button,
+    #fullscreen-button {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    /* 输入框触摸优化 */
+    #login-form input,
+    #action-input {
+        min-height: 44px;
+    }
+    
+    /* 折叠面板触摸优化 */
+    #character-status summary {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+    }
+    
+    /* 链接触摸目标优化 */
+    #narrative-window a {
+        display: inline-block;
+        padding: 0.2rem 0;
+        min-height: 44px;
+        line-height: 44px;
+    }
+}
+
+
+/* --- 减少动画偏好支持 (prefers-reduced-motion) --- */
+@media (prefers-reduced-motion: reduce) {
+    /* 禁用所有动画和过渡 */
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    
+    /* 移除背景动画 */
+    #login-view::before {
+        animation: none;
+    }
+    
+    /* 移除加载指示器动画，改为静态显示 */
+    .spinner::before,
+    .spinner::after {
+        animation: none;
+    }
+    
+    .spinner::before {
+        transform: rotate(45deg);
+    }
+    
+    .spinner::after {
+        transform: rotate(45deg);
+        opacity: 1;
+    }
+    
+    /* 移除骰子动画 */
+    .dice-cup {
+        animation: none;
+    }
+    
+    /* 移除覆盖层动画 */
+    #roll-overlay::before,
+    #roll-overlay::after {
+        animation: none;
+    }
+    
+    /* 移除按钮光泽滑动效果 */
+    .login-button::before,
+    .header-button::before,
+    #action-button::before,
+    #start-trial-button::before {
+        display: none;
+    }
+    
+    /* 保持基本的视觉反馈但无动画 */
+    .login-button:hover,
+    .header-button:hover,
+    #action-button:hover:not(:disabled),
+    #start-trial-button:hover:not(:disabled) {
+        transform: none;
+    }
+    
+    /* 移除视图切换动画 */
+    .view.active {
+        animation: none;
+    }
+    
+    #game-header,
+    #status-panel,
+    #main-content,
+    #action-area {
+        animation: none;
+    }
+    
+    /* 移除结果显示动画 */
+    #roll-result-display,
+    .outcome-大成功,
+    .outcome-大失败 {
+        animation: none;
+    }
+    
+    /* 移除面板入场动画 */
+    #roll-panel {
+        animation: none;
+    }
+    
+    /* 移除错误消息抖动动画 */
+    .error-message {
+        animation: none;
+    }
 }

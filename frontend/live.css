@@ -1,4 +1,167 @@
-/* --- Live View Specific Layout --- */
+/* --- 
+Theme: Persona 5 Style (P5 风格) - Live View
+
+性能优化说明 (Performance Optimization Notes):
+- 所有动画关键帧仅使用 transform 和 opacity 属性以启用 GPU 加速
+- 避免在动画中使用布局触发属性 (width, height, top, left, margin, padding)
+- 与 index.css 保持相同的性能优化策略
+--- */
+
+/* --- P5 核心配色变量系统（与 index.css 保持同步） --- */
+:root {
+    /* P5 核心配色 */
+    --p5-black: #0a0a0a;
+    --p5-dark: #1a1a1a;
+    --p5-darker: #121212;
+    --p5-red: #ff0000;
+    --p5-red-dark: #cc0000;
+    --p5-red-light: #ff3333;
+    --p5-white: #ffffff;
+    --p5-gray: #888888;
+    --p5-gray-light: #aaaaaa;
+    --p5-gray-dark: #444444;
+    
+    /* 功能色 */
+    --p5-success: #00ff00;
+    --p5-warning: #ffff00;
+    --p5-error: #ff0000;
+    
+    /* P5 斜切角度变量 */
+    --p5-skew: -3deg;
+    --p5-skew-strong: -5deg;
+    --p5-skew-subtle: -2deg;
+    
+    /* P5 动画时长变量 */
+    --p5-transition-fast: 150ms;
+    --p5-transition-normal: 300ms;
+    --p5-transition-slow: 500ms;
+    
+    /* 兼容旧变量名（渐进式迁移） */
+    --bg-color: var(--p5-black);
+    --panel-bg: var(--p5-dark);
+    --text-color: var(--p5-white);
+    --title-color: var(--p5-white);
+    --border-color: var(--p5-red);
+    --primary-color: var(--p5-red);
+    --accent-color: var(--p5-red);
+    --shadow-color: rgba(255, 0, 0, 0.3);
+    --light-shadow: rgba(255, 0, 0, 0.2);
+    
+    /* P5 字体 */
+    --p5-font-heading: 'Bebas Neue', 'Arial Black', 'Noto Sans SC', sans-serif;
+    --p5-font-body: 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
+    
+    /* 兼容旧字体变量 */
+    --font-serif: var(--p5-font-body);
+    --font-sans: var(--p5-font-heading);
+}
+
+/* --- P5 风格页面过渡动画关键帧（与 index.css 保持同步） --- */
+@keyframes p5-slide-in {
+    0% {
+        transform: translateX(-100%) skewX(-10deg);
+        opacity: 0;
+    }
+    60% {
+        transform: translateX(5%) skewX(-2deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translateX(0) skewX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes p5-slide-in-right {
+    0% {
+        transform: translateX(100%) skewX(10deg);
+        opacity: 0;
+    }
+    60% {
+        transform: translateX(-5%) skewX(2deg);
+        opacity: 1;
+    }
+    100% {
+        transform: translateX(0) skewX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes p5-fade-in {
+    0% {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@keyframes p5-fade-in-up {
+    0% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* --- P5 风格交互动画关键帧（与 index.css 保持同步） --- */
+@keyframes p5-input-focus-glow {
+    0% {
+        box-shadow: 0 0 0 rgba(255, 0, 0, 0);
+    }
+    50% {
+        box-shadow: 0 0 20px rgba(255, 0, 0, 0.6);
+    }
+    100% {
+        box-shadow: 0 0 15px rgba(255, 0, 0, 0.4);
+    }
+}
+
+@keyframes p5-pulse {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+/* --- P5 风格加载指示器动画（与 index.css 保持同步） --- */
+@keyframes p5-spinner-rotate {
+    0% {
+        transform: rotate(45deg) scale(1);
+    }
+    25% {
+        transform: rotate(135deg) scale(1.1);
+    }
+    50% {
+        transform: rotate(225deg) scale(1);
+    }
+    75% {
+        transform: rotate(315deg) scale(1.1);
+    }
+    100% {
+        transform: rotate(405deg) scale(1);
+    }
+}
+
+@keyframes p5-spinner-pulse {
+    0%, 100% {
+        opacity: 1;
+        transform: rotate(45deg) scale(1);
+    }
+    50% {
+        opacity: 0.6;
+        transform: rotate(45deg) scale(0.8);
+    }
+}
+
+/* --- Live View P5 风格布局 --- */
 #live-view.view.active {
     /* Override conflicting styles from style.css with high specificity and !important */
     display: grid !important;
@@ -10,86 +173,163 @@
     grid-template-areas:
         "header header header"
         "players main status";
-    /* Remove gap and background color to eliminate harsh lines */
+    /* P5 风格红色分隔线 */
+    gap: 3px;
+    background: linear-gradient(135deg, var(--p5-red-dark) 0%, var(--p5-red) 50%, var(--p5-red-dark) 100%);
+    /* P5 风格入场动画 */
+    animation: p5-fade-in var(--p5-transition-slow) ease-out;
 }
 
 #live-view #game-header,
 #live-view #status-panel,
 #live-view #main-content,
 #live-view #live-character-panel {
-    background: var(--panel-bg);
+    background: var(--p5-dark);
     padding: 1rem;
     overflow-y: auto;
 }
 
-/* Add consistent panel titles */
+/* P5 风格面板标题 */
 #live-view #status-panel p,
 #live-view #live-character-panel p {
-    font-family: var(--font-sans);
+    font-family: var(--p5-font-heading);
     font-weight: bold;
-    color: var(--title-color);
+    color: var(--p5-white);
     font-size: 1.2rem;
-    border-bottom: 1px solid var(--border-color);
+    border-bottom: 2px solid var(--p5-red);
     padding-bottom: 0.5rem;
     margin-top: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
 }
 
-
+/* P5 风格头部区域 */
 #live-view #game-header {
     grid-area: header;
-    border-bottom: 2px solid #5a4a3a;
+    background: var(--p5-black);
+    border-bottom: 3px solid var(--p5-red);
+    /* P5 风格入场动画 */
+    animation: p5-fade-in-up var(--p5-transition-normal) ease-out;
 }
 
+/* P5 风格玩家列表面板 */
 #live-view #status-panel {
     grid-area: players;
-    border-right: 2px solid #5a4a3a;
+    background: var(--p5-darker);
+    border-right: 3px solid var(--p5-red);
+    /* P5 风格斜条纹装饰 */
+    background-image: 
+        repeating-linear-gradient(
+            -45deg,
+            transparent,
+            transparent 30px,
+            rgba(255, 0, 0, 0.03) 30px,
+            rgba(255, 0, 0, 0.03) 60px
+        );
+    /* P5 风格入场动画 */
+    animation: p5-slide-in var(--p5-transition-slow) ease-out 0.1s both;
 }
 
+/* P5 风格主内容区域 */
 #live-view #main-content {
     grid-area: main;
-    padding: 0; /* Remove padding to allow narrative window to fill */
+    padding: 0;
+    background: var(--p5-dark);
+    /* P5 风格入场动画 */
+    animation: p5-fade-in var(--p5-transition-slow) ease-out 0.15s both;
 }
 
+/* P5 风格角色状态面板 */
 #live-view #live-character-panel {
     grid-area: status;
-    /* border-left is not needed as main-content doesn't have a right border */
+    background: var(--p5-darker);
+    border-left: 3px solid var(--p5-red);
+    /* P5 风格斜条纹装饰 */
+    background-image: 
+        repeating-linear-gradient(
+            45deg,
+            transparent,
+            transparent 30px,
+            rgba(255, 0, 0, 0.03) 30px,
+            rgba(255, 0, 0, 0.03) 60px
+        );
+    /* P5 风格入场动画 */
+    animation: p5-slide-in-right var(--p5-transition-slow) ease-out 0.1s both;
 }
 
+/* --- P5 风格玩家列表项 --- */
 #player-list .player-list-item {
-    padding: 0.8rem 1rem;
+    padding: 0.9rem 1rem;
     cursor: pointer;
-    border-bottom: 1px solid rgba(0,0,0,0.08);
-    transition: background-color 0.2s ease;
+    border-bottom: 1px solid var(--p5-gray-dark);
+    transition: all var(--p5-transition-normal) ease;
+    font-family: var(--p5-font-body);
+    color: var(--p5-gray-light);
+    position: relative;
+    /* P5 风格左边框指示器 */
+    border-left: 3px solid transparent;
 }
 
 #player-list .player-list-item:hover {
-    background-color: rgba(0,0,0,0.05);
+    background: var(--p5-dark);
+    color: var(--p5-white);
+    border-left-color: var(--p5-red);
 }
 
+/* P5 风格选中状态 - 红色强调 */
 #player-list .player-list-item.active {
-    background-color: rgba(106, 139, 106, 0.2); /* Softer jade green */
-    color: var(--title-color);
+    background: var(--p5-black);
+    color: var(--p5-white);
     font-weight: bold;
-    border-right: 4px solid var(--primary-color);
+    border-left: 4px solid var(--p5-red);
+    box-shadow: 
+        inset 0 0 20px rgba(255, 0, 0, 0.1),
+        0 0 10px rgba(255, 0, 0, 0.2);
 }
 
-/* Responsive adjustments for live view */
+/* P5 风格选中状态红色光效 */
+#player-list .player-list-item.active::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, rgba(255, 0, 0, 0.15), transparent);
+    pointer-events: none;
+}
+
+/* P5 风格选中状态右侧指示器 */
+#player-list .player-list-item.active::after {
+    content: '▶';
+    position: absolute;
+    right: 0.8rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--p5-red);
+    font-size: 0.8rem;
+    text-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+}
+
+/* --- P5 风格响应式设计 --- */
 @media (max-width: 1000px) {
     #live-view.view.active {
         display: flex !important;
         flex-direction: column;
+        gap: 0;
+        background: var(--p5-black);
     }
 
     #live-view #status-panel,
     #live-view #live-character-panel {
         border: none;
-        border-bottom: 2px solid #5a4a3a;
+        border-bottom: 3px solid var(--p5-red);
         flex-shrink: 0;
     }
 
     #live-view #main-content {
         flex-grow: 1;
-        min-height: 200px; /* Ensure it has a minimum height */
+        min-height: 200px;
     }
 
     #live-view #status-panel details,
@@ -97,19 +337,362 @@
         width: 100%;
     }
 
+    /* P5 风格折叠面板 */
     #live-view #status-panel summary,
     #live-view #live-character-panel summary {
-        font-family: var(--font-sans);
+        font-family: var(--p5-font-heading);
         font-weight: bold;
-        color: var(--title-color);
+        color: var(--p5-white);
         font-size: 1.2rem;
         padding: 0.5rem 0;
         cursor: pointer;
         outline: none;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        transition: color var(--p5-transition-fast) ease;
+    }
+
+    #live-view #status-panel summary:hover,
+    #live-view #live-character-panel summary:hover {
+        color: var(--p5-red);
     }
 
     #live-view #status-panel summary::marker,
     #live-view #live-character-panel summary::marker {
-        color: var(--primary-color);
+        color: var(--p5-red);
+    }
+}
+
+/* 850px 断点下的移动端优化 */
+@media (max-width: 850px) {
+    #live-view.view.active {
+        display: flex !important;
+        flex-direction: column;
+        gap: 0;
+        background: var(--p5-black);
+    }
+    
+    /* 头部区域移动端优化 */
+    #live-view #game-header {
+        padding: 0.6rem 1rem;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    #live-view #game-header h1 {
+        font-size: 1.5rem;
+    }
+    
+    /* 玩家列表面板移动端优化 */
+    #live-view #status-panel {
+        max-height: 150px;
+        padding: 0.8rem 1rem;
+        overflow-y: auto;
+    }
+    
+    /* 角色状态面板移动端优化 */
+    #live-view #live-character-panel {
+        max-height: 150px;
+        padding: 0.8rem 1rem;
+        overflow-y: auto;
+    }
+    
+    /* 叙事窗口移动端优化 */
+    #live-view #narrative-window {
+        padding: 1rem;
+        font-size: 1rem;
+        line-height: 1.8;
+    }
+    
+    /* 返回按钮移动端优化 - 移除斜切 */
+    #live-view .logout-button {
+        transform: none;
+    }
+    
+    #live-view .logout-button:hover {
+        transform: translateY(-2px);
+    }
+    
+    #live-view .logout-button:active {
+        transform: scale(0.95);
+    }
+}
+
+
+/* --- P5 风格返回按钮 --- */
+#live-view .logout-button {
+    padding: 0.5rem 1rem;
+    background: transparent;
+    color: var(--p5-white);
+    border: 2px solid var(--p5-red);
+    border-radius: 0;
+    cursor: pointer;
+    font-family: var(--p5-font-heading);
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    transition: all var(--p5-transition-normal) ease;
+    transform: skewX(var(--p5-skew-subtle));
+    position: relative;
+    overflow: hidden;
+    display: inline-block;
+}
+
+#live-view .logout-button::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 0, 0, 0.3), transparent);
+    transition: left var(--p5-transition-normal) ease;
+}
+
+#live-view .logout-button:hover {
+    background: var(--p5-red);
+    color: var(--p5-white);
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.5);
+}
+
+#live-view .logout-button:hover::before {
+    left: 100%;
+}
+
+#live-view .logout-button:active {
+    transform: skewX(var(--p5-skew-subtle)) scale(0.95);
+    /* P5 风格按钮点击反馈 */
+    transition: transform var(--p5-transition-fast) ease-out;
+}
+
+/* --- P5 风格系统消息 --- */
+#live-view .system-message {
+    padding: 2rem;
+    text-align: center;
+    color: var(--p5-gray-light);
+    font-family: var(--p5-font-body);
+}
+
+#live-view .system-message p {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
+/* --- P5 风格叙事窗口（直播视图） --- */
+#live-view #narrative-window {
+    flex-grow: 1;
+    padding: 2rem;
+    overflow-y: auto;
+    line-height: 2;
+    font-size: 1.1rem;
+    background: var(--p5-darker);
+    color: var(--p5-white);
+    border-left: 1px solid rgba(255, 0, 0, 0.2);
+}
+
+/* --- P5 风格角色状态（直播视图） --- */
+#live-view #character-status {
+    font-size: 0.95rem;
+    line-height: 1.8;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: var(--p5-gray-light);
+}
+
+/* P5 风格折叠面板（直播视图） */
+#live-view #character-status details {
+    margin-bottom: 0.8rem;
+    border: 2px solid var(--p5-gray-dark);
+    border-radius: 0;
+    background: var(--p5-dark);
+    transition: all var(--p5-transition-normal) ease;
+}
+
+#live-view #character-status details:hover {
+    border-color: var(--p5-red);
+}
+
+#live-view #character-status details[open] {
+    border-color: var(--p5-red);
+    box-shadow: 0 0 10px rgba(255, 0, 0, 0.2);
+}
+
+#live-view #character-status summary {
+    font-family: var(--p5-font-body);
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0.7rem 1rem;
+    background: var(--p5-dark);
+    color: var(--p5-white);
+    outline: none;
+    transition: all var(--p5-transition-fast) ease;
+    border-left: 3px solid transparent;
+}
+
+#live-view #character-status summary:hover {
+    background: var(--p5-darker);
+    border-left-color: var(--p5-red);
+}
+
+#live-view #character-status details[open] summary {
+    background: var(--p5-black);
+    border-left-color: var(--p5-red);
+}
+
+#live-view #character-status summary::marker {
+    color: var(--p5-red);
+}
+
+#live-view #character-status .details-content {
+    padding: 0.8rem 1rem 0.8rem 1.5rem;
+    background: var(--p5-darker);
+    border-top: 1px solid var(--p5-gray-dark);
+}
+
+/* P5 风格属性项 */
+#live-view .property-item {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.3rem 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+#live-view .property-item:last-child {
+    border-bottom: none;
+}
+
+#live-view .property-key {
+    font-weight: bold;
+    color: var(--p5-gray-light);
+}
+
+#live-view .property-value {
+    color: var(--p5-white);
+}
+
+/* --- P5 风格头部标题（直播视图） --- */
+#live-view #game-header h1 {
+    margin: 0;
+    font-family: var(--p5-font-heading);
+    font-size: 2rem;
+    color: var(--p5-white);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    text-shadow: 2px 2px 0 var(--p5-red);
+}
+
+/* --- P5 风格玩家列表容器 --- */
+#live-view #player-list {
+    margin-top: 0.5rem;
+}
+
+/* 空状态提示 */
+#live-view #player-list:empty::after {
+    content: '暂无在线玩家';
+    display: block;
+    padding: 1rem;
+    text-align: center;
+    color: var(--p5-gray);
+    font-family: var(--p5-font-body);
+    font-style: italic;
+}
+
+
+/* --- 触摸目标尺寸优化 (最小 44px) --- */
+@media (max-width: 850px) {
+    /* 玩家列表项触摸目标优化 */
+    #player-list .player-list-item {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        padding: 0.8rem 1rem;
+    }
+    
+    /* 返回按钮触摸目标优化 */
+    #live-view .logout-button {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 0.6rem 1rem;
+    }
+    
+    /* 折叠面板 summary 触摸目标优化 */
+    #live-view #character-status summary,
+    #live-view #status-panel summary,
+    #live-view #live-character-panel summary {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+    }
+}
+
+/* 通用触摸目标优化 - 适用于所有触摸设备 */
+@media (pointer: coarse) {
+    /* 玩家列表项触摸优化 */
+    #player-list .player-list-item {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+    }
+    
+    /* 返回按钮触摸优化 */
+    #live-view .logout-button {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    /* 折叠面板触摸优化 */
+    #live-view #character-status summary,
+    #live-view #status-panel summary,
+    #live-view #live-character-panel summary {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+    }
+}
+
+
+/* --- 减少动画偏好支持 (prefers-reduced-motion) --- */
+@media (prefers-reduced-motion: reduce) {
+    /* 禁用所有动画和过渡 */
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    
+    /* 移除视图入场动画 */
+    #live-view.view.active {
+        animation: none;
+    }
+    
+    #live-view #game-header,
+    #live-view #status-panel,
+    #live-view #main-content,
+    #live-view #live-character-panel {
+        animation: none;
+    }
+    
+    /* 移除按钮光泽滑动效果 */
+    #live-view .logout-button::before {
+        display: none;
+    }
+    
+    /* 保持基本的视觉反馈但无动画 */
+    #live-view .logout-button:hover {
+        transform: none;
+    }
+    
+    /* 移除玩家列表项过渡效果 */
+    #player-list .player-list-item {
+        transition: none;
+    }
+    
+    /* 移除折叠面板过渡效果 */
+    #live-view #character-status details,
+    #live-view #character-status summary {
+        transition: none;
     }
 }
